@@ -50,7 +50,7 @@ app.prepare().then(() => {
     // Timer tracking
     const turnTimers: Record<string, NodeJS.Timeout> = {};
 
-    const startTurnTimer = (roomId: string) => {
+    const resetTurnTimer = (roomId: string) => {
         const room = rooms[roomId];
         if (!room || room.gameState.status !== 'playing') return;
 
@@ -61,19 +61,22 @@ app.prepare().then(() => {
         }
 
         const limit = room.gameState.turnTimeLimit;
-        if (!limit || limit <= 0) return; // Unlimited
+        if (!limit || limit <= 0) {
+            room.gameState.turnStartTime = undefined;
+            return;
+        }
 
+        // Set new start time
         room.gameState.turnStartTime = Date.now();
-        // Notify start time (optional, but game_state_update handles it)
+        console.log(`[${roomId}] TIMER RESET: StartTime updated to ${room.gameState.turnStartTime} (Limit: ${limit}s)`);
 
         turnTimers[roomId] = setTimeout(() => {
             console.log(`[${roomId}] Turn time limit exceeded for player index ${room.gameState.currentTurnIndex}`);
-            // Force Pass or Random Play?
-            // "Pass" is safer to avoid ruining strategy, but if everyone passes it's round over.
-            // Let's do Pass.
             const playerIndex = room.gameState.currentTurnIndex;
-            handlePass(roomId, playerIndex);
-
+            // Only pass if it's still the same player's turn (optimization/safety)
+            if (room.gameState.players[playerIndex]) {
+                handlePass(roomId, playerIndex);
+            }
         }, limit * 1000);
     };
 
@@ -82,10 +85,7 @@ app.prepare().then(() => {
         const room = rooms[roomId];
         if (!room || room.gameState.status !== 'playing') return;
 
-        // ** Start Timer for EVERY turn (Human or AI) **
-        // Note: AI has its own delay, so we should ensure AI delay < Time Limit if possible.
-        // But for consistency we start the timer here.
-        startTurnTimer(roomId);
+        // Timer is now handled by the caller (start_game, play_cards, pass) BEFORE emitting state
 
         const currentPlayer = room.gameState.players[room.gameState.currentTurnIndex];
         if (!currentPlayer.isBot) return;
@@ -154,6 +154,9 @@ app.prepare().then(() => {
 
                 room.gameState.currentTurnIndex = nextIndex;
 
+                // Reset timer for the next turn
+                resetTurnTimer(roomId);
+
                 io.to(roomId).emit('game_state_update', room.gameState);
                 processAiTurn(roomId);
 
@@ -161,6 +164,7 @@ app.prepare().then(() => {
                 // Pass
                 console.log(`[${roomId}] Bot ${currentPlayer.name} passes`);
                 const playerIndex = room.gameState.players.findIndex(p => p.id === currentPlayer.id);
+                // handlePass calls resetTurnTimer internally now, so we don't need to double call it here
                 handlePass(roomId, playerIndex);
             }
 
@@ -289,6 +293,10 @@ app.prepare().then(() => {
             }
         }
 
+        // Reset timer for the next turn (or same player if everyone passed and round over logic didn't catch it?)
+        // handlePass logic is complex, but generally currentTurnIndex is updated to the next active player.
+        resetTurnTimer(roomId);
+
         io.to(roomId).emit('game_state_update', room.gameState);
         processAiTurn(roomId);
     };
@@ -337,7 +345,8 @@ app.prepare().then(() => {
                         deck: [],
                         status: 'waiting',
                         round: 1,
-                        winners: []
+                        winners: [],
+                        turnTimeLimit: undefined // Explicitly undefined to force selection
                     }
                 };
             }
@@ -429,6 +438,9 @@ app.prepare().then(() => {
                     room.gameState.currentTurnIndex = Math.floor(Math.random() * room.gameState.players.length);
                 }
 
+                // Reset timer for the first turn
+                resetTurnTimer(roomId);
+
                 io.to(roomId).emit('game_state_update', room.gameState);
 
                 // Check if first player is bot
@@ -513,6 +525,9 @@ app.prepare().then(() => {
                 }
 
                 room.gameState.currentTurnIndex = nextIndex;
+
+                // Reset timer for the next turn
+                resetTurnTimer(roomId);
 
                 io.to(roomId).emit('game_state_update', room.gameState);
 

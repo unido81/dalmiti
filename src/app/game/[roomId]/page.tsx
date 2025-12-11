@@ -49,6 +49,13 @@ export default function GameRoom() {
 
     const startGame = () => {
         if (socket && roomId) {
+            // Check if time limit is selected (must be 0 or greater, assuming undefined is "not selected")
+            // Actually, in the current UI logic, 0 is "Unlimited".
+            // But if the server initializes it to undefined, we can check that.
+            if (gameState?.turnTimeLimit === undefined) {
+                alert('⏳ 턴 시간 제한을 선택해주세요!');
+                return;
+            }
             socket.emit('start_game', roomId);
         }
     };

@@ -12,6 +12,8 @@ export const TurnTimer: React.FC<TurnTimerProps> = ({ startTime, limit, currentP
     const [timeLeft, setTimeLeft] = useState(limit || 0);
 
     useEffect(() => {
+        console.log(`[TurnTimer] START TIME CHANGED: ${startTime}, Limit: ${limit}`);
+
         if (!limit || limit <= 0 || !startTime) {
             setTimeLeft(0);
             return;
