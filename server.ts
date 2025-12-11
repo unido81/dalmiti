@@ -2,7 +2,7 @@ import { createServer } from 'http';
 import { parse } from 'url';
 import next from 'next';
 import { Server, Socket } from 'socket.io';
-import { GameState, Player, Card } from './src/types/game';
+import { GameState, Player, Card, BotLevel } from './src/types/game';
 import { createDeck, dealCards, isValidMove, shuffle } from './src/lib/game/logic';
 import { getBestMove } from './src/lib/game/ai';
 
@@ -54,10 +54,12 @@ app.prepare().then(() => {
         const currentPlayer = room.gameState.players[room.gameState.currentTurnIndex];
         if (!currentPlayer.isBot) return;
 
-        // Delay for realism
+        // Delay for realism based on difficulty
+        const delay = currentPlayer.botDifficulty === 'easy' ? 1000 : currentPlayer.botDifficulty === 'hard' ? 2500 : 1500;
+
         room.aiTimeout = setTimeout(() => {
             console.log(`[${roomId}] Bot ${currentPlayer.name} thinking... LastPlayed: ${room.gameState.lastPlayedCards?.length || 0} cards`);
-            const move = getBestMove(currentPlayer.hand, room.gameState.lastPlayedCards);
+            const move = getBestMove(currentPlayer.hand, room.gameState.lastPlayedCards, currentPlayer.botDifficulty);
 
             if (move) {
                 // Play cards
@@ -126,7 +128,7 @@ app.prepare().then(() => {
                 handlePass(roomId, playerIndex);
             }
 
-        }, 1500); // 1.5s delay
+        }, delay);
     };
 
     const handlePass = (roomId: string, playerIndex: number) => {
@@ -304,15 +306,16 @@ app.prepare().then(() => {
             console.log(`${nickname} joined room ${roomId}`);
         });
 
-        socket.on('add_bot', (roomId: string) => {
+        socket.on('add_bot', ({ roomId, difficulty }: { roomId: string, difficulty: BotLevel }) => {
             const room = rooms[roomId];
             if (room && room.gameState.status === 'waiting') {
                 const botId = `bot-${Math.random().toString(36).substr(2, 5)}`;
                 const newBot: Player = {
                     id: botId,
-                    name: `Bot ${room.gameState.players.length + 1}`,
+                    name: `Bot ${room.gameState.players.length + 1} (${difficulty})`,
                     hand: [],
                     isBot: true,
+                    botDifficulty: difficulty || 'medium',
                     hasPassed: false,
                     characterId: ['king', 'queen', 'knight', 'merchant', 'peasant', 'jester', 'wizard', 'thief'][Math.floor(Math.random() * 8)]
                 };
@@ -344,8 +347,16 @@ app.prepare().then(() => {
                 room.gameState.status = 'playing';
                 room.gameState.deck = createDeck();
                 room.gameState.players = dealCards(room.gameState.players, room.gameState.deck);
-                // Random starting player for now
-                room.gameState.currentTurnIndex = Math.floor(Math.random() * room.gameState.players.length);
+
+                // Find player with the Dalmuti (Rank 1) to start
+                const dalmutiIndex = room.gameState.players.findIndex(p => p.hand.some(c => c.rank === 1));
+                if (dalmutiIndex !== -1) {
+                    room.gameState.currentTurnIndex = dalmutiIndex;
+                    console.log(`[${roomId}] Player ${room.gameState.players[dalmutiIndex].name} has the Dalmuti (1) and starts!`);
+                } else {
+                    // Fallback (should theoretically not happen with full deck) or for testing
+                    room.gameState.currentTurnIndex = Math.floor(Math.random() * room.gameState.players.length);
+                }
 
                 io.to(roomId).emit('game_state_update', room.gameState);
 
@@ -512,6 +523,17 @@ app.prepare().then(() => {
         socket.on('disconnect', () => {
             console.log('Client disconnected:', socket.id);
             // Ideally handle disconnect similar to leave_room if permanent
+        });
+
+        socket.on('chat_message', ({ roomId, message, nickname }: { roomId: string, message: string, nickname: string }) => {
+            console.log(`[${roomId}] Chat from ${nickname}: ${message}`);
+            // Broadcast to all in room
+            io.to(roomId).emit('chat_message', {
+                id: Math.random().toString(36).substr(2, 9),
+                sender: nickname,
+                message: message,
+                timestamp: new Date().toISOString()
+            });
         });
     });
 

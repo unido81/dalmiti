@@ -9,6 +9,7 @@ import { Table } from '@/components/game/Table';
 import { PlayerList } from '@/components/game/PlayerList';
 import { Button } from '@/components/ui/Button';
 import { GameEndModal } from '@/components/game/GameEndModal';
+import { Chat } from '@/components/game/Chat';
 
 export default function GameRoom() {
     const { roomId } = useParams();
@@ -19,6 +20,7 @@ export default function GameRoom() {
 
     const [gameState, setGameState] = useState<GameState | null>(null);
     const [selectedCards, setSelectedCards] = useState<CardType[]>([]);
+    const [showBotMenu, setShowBotMenu] = useState(false);
     const [myPlayer, setMyPlayer] = useState<Player | null>(null);
 
     useEffect(() => {
@@ -45,9 +47,23 @@ export default function GameRoom() {
         };
     }, [socket, roomId, nickname]);
 
-    const handleStartGame = () => {
+    const startGame = () => {
         if (socket && roomId) {
             socket.emit('start_game', roomId);
+        }
+    };
+
+    const addBot = (difficulty: 'easy' | 'medium' | 'hard' = 'medium') => {
+        if (socket && roomId) {
+            socket.emit('add_bot', { roomId: roomId, difficulty });
+            setShowBotMenu(false);
+        }
+    };
+
+    const handleLeaveRoom = () => {
+        if (confirm('정말 게임을 포기하고 나가시겠습니까?')) {
+            socket?.emit('leave_room', roomId);
+            router.push('/lobby');
         }
     };
 
@@ -93,6 +109,7 @@ export default function GameRoom() {
         gameState.players[gameState.currentTurnIndex]?.id === socket?.id;
 
     const currentTurnPlayer = gameState.players[gameState.currentTurnIndex];
+    const players = gameState.players; // For waiting room player count
 
     const sortedWinners = [...gameState.winners].sort((a, b) => (a.finishedRank || 0) - (b.finishedRank || 0));
 
@@ -110,12 +127,7 @@ export default function GameRoom() {
 
             <div className="absolute top-4 right-4 z-20">
                 <Button
-                    onClick={() => {
-                        if (confirm('정말 게임을 포기하고 나가시겠습니까?')) {
-                            socket?.emit('leave_room', roomId);
-                            router.push('/lobby');
-                        }
-                    }}
+                    onClick={handleLeaveRoom}
                     variant="secondary"
                     size="sm"
                     className="bg-red-900/80 hover:bg-red-800 text-red-100 border-red-950 font-serif"
@@ -146,21 +158,74 @@ export default function GameRoom() {
                     status={gameState.status}
                     currentTurnPlayerName={currentTurnPlayer?.name}
                 />
+                {/* Waiting Room Controls */}
+                {gameState.status === 'waiting' && (
+                    <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-center z-10 w-full max-w-md">
+                        <div className="bg-[#f4e4bc] p-8 rounded-xl shadow-2xl border-4 border-[#8b5a2b] relative">
+                            {/* Decorative Elements */}
+                            <div className="absolute -top-3 -left-3 w-6 h-6 bg-[#8b5a2b] rounded-full border-2 border-[#d4c5a3]"></div>
+                            <div className="absolute -top-3 -right-3 w-6 h-6 bg-[#8b5a2b] rounded-full border-2 border-[#d4c5a3]"></div>
+                            <div className="absolute -bottom-3 -left-3 w-6 h-6 bg-[#8b5a2b] rounded-full border-2 border-[#d4c5a3]"></div>
+                            <div className="absolute -bottom-3 -right-3 w-6 h-6 bg-[#8b5a2b] rounded-full border-2 border-[#d4c5a3]"></div>
+
+                            <h2 className="text-3xl font-bold text-[#4a3a2a] mb-6 font-serif tracking-wide">대기실</h2>
+
+                            <div className="space-y-4">
+                                <Button
+                                    onClick={startGame}
+                                    variant="primary"
+                                    className="w-full text-xl py-4 shadow-lg hover:scale-105 transition-transform"
+                                    disabled={players.length < 2}
+                                >
+                                    {players.length < 2 ? '플레이어 부족 (최소 2명)' : '게임 시작 ⚔️'}
+                                </Button>
+
+                                <div className="relative">
+                                    <Button
+                                        onClick={() => setShowBotMenu(!showBotMenu)}
+                                        variant="secondary"
+                                        className="w-full text-lg border-2 border-[#8b5a2b] text-[#5a4632] hover:bg-[#e6d5aa]"
+                                    >
+                                        봇 추가하기 🤖
+                                    </Button>
+
+                                    {/* Bot Difficulty Menu */}
+                                    {showBotMenu && (
+                                        <div className="absolute bottom-full left-0 right-0 mb-2 bg-white rounded-lg shadow-xl border border-amber-200 overflow-hidden animate-in fade-in slide-in-from-bottom-2">
+                                            <div className="p-2 space-y-1">
+                                                <button onClick={() => addBot('easy')} className="w-full text-left px-4 py-2 hover:bg-green-50 text-green-700 font-bold rounded">
+                                                    🌱 쉬움 (Easy)
+                                                </button>
+                                                <button onClick={() => addBot('medium')} className="w-full text-left px-4 py-2 hover:bg-blue-50 text-blue-700 font-bold rounded">
+                                                    ⚖️ 보통 (Medium)
+                                                </button>
+                                                <button onClick={() => addBot('hard')} className="w-full text-left px-4 py-2 hover:bg-red-50 text-red-700 font-bold rounded">
+                                                    🔥 어려움 (Hard)
+                                                </button>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+
+                                <Button
+                                    onClick={handleLeaveRoom}
+                                    className="w-full bg-red-800/80 hover:bg-red-900 text-amber-100 border-none"
+                                >
+                                    나가기
+                                </Button>
+                            </div>
+
+                            <div className="mt-6 text-[#8b5a2b]/70 font-serif italic">
+                                현재 인원: {players.length}명
+                            </div>
+                        </div>
+                    </div>
+                )}
             </div>
 
             {/* Controls */}
             <div className="absolute bottom-40 left-1/2 transform -translate-x-1/2 flex gap-4 z-20">
-                {gameState.status === 'waiting' && (
-                    <div className="flex gap-4">
-                        <Button onClick={() => socket?.emit('add_bot', roomId)} variant="secondary" size="lg" className="border-amber-700 text-amber-900 bg-[#f4e4bc] hover:bg-[#e6d0a0]">
-                            봇 추가 🤖
-                        </Button>
-                        <Button onClick={handleStartGame} size="lg" className="animate-bounce bg-amber-600 border-amber-800 hover:bg-amber-700 text-white shadow-xl">
-                            게임 시작 ⚔️
-                        </Button>
-                    </div>
-                )}
-
+                {/* The waiting room controls are now handled by the absolute positioned div above */}
                 {isMyTurn && (
                     <>
                         <Button
@@ -191,6 +256,8 @@ export default function GameRoom() {
                     isMyTurn={isMyTurn}
                 />
             )}
+            {/* Chat Component */}
+            <Chat socket={socket} roomId={roomId as string} nickname={myPlayer?.name || 'Guest'} />
         </main>
     );
 }

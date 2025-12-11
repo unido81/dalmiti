@@ -25,7 +25,10 @@ export interface Player {
   hasPassed: boolean;
   finishedRank?: number; // Rank achieved in current game
   characterId: string; // ID for the visual avatar
+  botDifficulty?: BotLevel; // If isBot is true
 }
+
+export type BotLevel = 'easy' | 'medium' | 'hard';
 
 export interface Character {
   id: string;
