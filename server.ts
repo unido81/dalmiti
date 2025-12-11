@@ -111,8 +111,10 @@ app.prepare().then(() => {
                 room.gameState.lastPlayerId = currentPlayer.id;
 
                 if (currentPlayer.hand.length === 0) {
-                    currentPlayer.finishedRank = room.gameState.winners.length + 1;
-                    room.gameState.winners.push(currentPlayer);
+                    if (!room.gameState.winners.find(w => w.id === currentPlayer.id)) {
+                        currentPlayer.finishedRank = room.gameState.winners.length + 1;
+                        room.gameState.winners.push(currentPlayer);
+                    }
                     console.log(`[${roomId}] Bot ${currentPlayer.name} finished! Rank: ${currentPlayer.finishedRank}`);
 
                     // Check if Game is Over (All players except one have finished)
@@ -215,7 +217,7 @@ app.prepare().then(() => {
 
                 // Assign last rank to the remaining player
                 const lastPlayer = room.gameState.players.find(p => p.hand.length > 0);
-                if (lastPlayer) {
+                if (lastPlayer && !room.gameState.winners.find(w => w.id === lastPlayer.id)) {
                     lastPlayer.finishedRank = room.gameState.players.length;
                     room.gameState.winners.push(lastPlayer);
                 }
@@ -266,7 +268,7 @@ app.prepare().then(() => {
 
                     // Assign last rank to the remaining player
                     const lastPlayer = room.gameState.players.find(p => p.hand.length > 0);
-                    if (lastPlayer) {
+                    if (lastPlayer && !room.gameState.winners.find(w => w.id === lastPlayer.id)) {
                         lastPlayer.finishedRank = room.gameState.players.length;
                         room.gameState.winners.push(lastPlayer);
                     }
@@ -479,8 +481,10 @@ app.prepare().then(() => {
 
                 // Check win condition
                 if (player.hand.length === 0) {
-                    player.finishedRank = room.gameState.winners.length + 1;
-                    room.gameState.winners.push(player);
+                    if (!room.gameState.winners.find(w => w.id === player.id)) {
+                        player.finishedRank = room.gameState.winners.length + 1;
+                        room.gameState.winners.push(player);
+                    }
                     console.log(`[${roomId}] Player ${player.name} finished! Rank: ${player.finishedRank}`);
 
                     // Check if Game is Over (All players except one have finished)

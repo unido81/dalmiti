@@ -84,7 +84,7 @@ export function GameEndModal({ winners, onReturnToLobby }: GameEndModalProps) {
                                 const isWinner = rank === 1;
                                 return (
                                     <motion.div
-                                        key={player.id}
+                                        key={`${player.id}-${index}`}
                                         initial={{ x: -20, opacity: 0 }}
                                         animate={{ x: 0, opacity: 1 }}
                                         transition={{ delay: index * 0.2 }}

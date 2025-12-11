@@ -24,6 +24,7 @@ export const Table: React.FC<TableProps> = ({
             {/* Turn Timer */}
             {status === 'playing' && currentTurnPlayerName && (
                 <TurnTimer
+                    key={turnStartTime} // Force remount when time changes
                     startTime={turnStartTime}
                     limit={turnTimeLimit}
                     currentPlayerName={currentTurnPlayerName}
