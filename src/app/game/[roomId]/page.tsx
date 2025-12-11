@@ -123,6 +123,12 @@ export default function GameRoom() {
                 <span className="opacity-70">Room: {roomId}</span>
                 <span className="w-px h-6 bg-amber-900/30"></span>
                 <span>Round {gameState.round}</span>
+                {myPlayer && (
+                    <>
+                        <span className="w-px h-6 bg-amber-900/30"></span>
+                        <span className="text-amber-800">My Seat: #{gameState.players.findIndex(p => p.id === myPlayer.id) + 1}</span>
+                    </>
+                )}
             </div>
 
             <div className="absolute top-4 right-4 z-20">

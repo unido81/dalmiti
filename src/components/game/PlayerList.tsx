@@ -59,6 +59,11 @@ export const PlayerList: React.FC<PlayerListProps> = ({ players, currentTurnInde
                             </div>
                         )}
 
+                        {/* Turn Order Badge */}
+                        <div className="absolute top-2 left-2 bg-[#8b5a2b] text-[#f4e4bc] text-xs font-bold px-1.5 py-0.5 rounded border border-[#d4c5a3] shadow-sm">
+                            #{players.findIndex(p => p.id === player.id) + 1}
+                        </div>
+
                         {isTurn && (
                             <div className="absolute -bottom-2 transform translate-y-full">
                                 <span className="text-2xl animate-bounce">⚔️</span>
