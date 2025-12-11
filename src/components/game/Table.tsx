@@ -1,17 +1,35 @@
 import React from 'react';
-import { Card as CardType } from '@/types/game';
-import { Card } from './Card';
-import { motion, AnimatePresence } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
+import { Card as CardComponent } from './Card';
+import { Card } from '@/types/game';
+import { TurnTimer } from './TurnTimer';
 
 interface TableProps {
-    lastPlayedCards: CardType[] | null;
-    status: string;
+    lastPlayedCards: Card[] | null;
+    status: 'waiting' | 'playing' | 'finished';
     currentTurnPlayerName?: string;
+    turnTimeLimit?: number;
+    turnStartTime?: number;
 }
 
-export const Table: React.FC<TableProps> = ({ lastPlayedCards, status, currentTurnPlayerName }) => {
+export const Table: React.FC<TableProps> = ({
+    lastPlayedCards,
+    status,
+    currentTurnPlayerName,
+    turnTimeLimit,
+    turnStartTime
+}) => {
     return (
-        <div className="flex-1 flex flex-col items-center justify-center min-h-[400px]">
+        <div className="relative w-full max-w-4xl h-96 flex items-center justify-center">
+            {/* Turn Timer */}
+            {status === 'playing' && currentTurnPlayerName && (
+                <TurnTimer
+                    startTime={turnStartTime}
+                    limit={turnTimeLimit}
+                    currentPlayerName={currentTurnPlayerName}
+                />
+            )}
+
             <div className="mb-8 text-center bg-black/40 p-4 rounded-xl backdrop-blur-sm border border-amber-900/30">
                 <h2 className="text-3xl font-bold text-amber-100 drop-shadow-[0_2px_2px_rgba(0,0,0,0.8)] mb-2 font-serif">
                     {status === 'waiting' ? '대기실' :

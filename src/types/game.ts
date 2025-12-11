@@ -57,6 +57,8 @@ export interface GameState {
   status: 'waiting' | 'playing' | 'finished';
   round: number;
   winners: Player[]; // List of players who have finished in order
+  turnTimeLimit?: number; // Seconds, 0 or undefined means unlimited
+  turnStartTime?: number; // Timestamp of when the current turn started
 }
 
 export const CARD_DEFINITIONS: Card[] = [

@@ -13,10 +13,27 @@ export const PlayerList: React.FC<PlayerListProps> = ({ players, currentTurnInde
         return char ? char.image : '/avatars/peasant.png';
     };
 
+    // Sort players to display in turn order relative to me (Me -> Next -> Next...)
+    const myIndex = players.findIndex(p => p.id === myId);
+
+    // Create a new array starting from the player after me
+    let orderedOpponents: Player[] = [];
+    if (myIndex !== -1) {
+        for (let i = 1; i < players.length; i++) {
+            const nextIndex = (myIndex + i) % players.length;
+            orderedOpponents.push(players[nextIndex]);
+        }
+    } else {
+        // Observer mode or error: just show all excluding me (if exists)
+        orderedOpponents = players.filter(p => p.id !== myId);
+    }
+
     return (
-        <div className="absolute top-20 left-4 right-4 flex justify-between items-start pointer-events-none z-10">
-            {players.filter(p => p.id !== myId).map((player, index) => {
+        <div className="absolute top-20 left-4 right-4 flex justify-between items-start pointer-events-none z-10 gap-2 overflow-x-auto no-scrollbar">
+            {orderedOpponents.map((player, index) => {
                 const isTurn = players[currentTurnIndex]?.id === player.id;
+                // Calculate relative turn order (1 = next player, 2 = after that...)
+                const turnOrder = index + 1;
                 return (
                     <div
                         key={player.id}
@@ -60,8 +77,9 @@ export const PlayerList: React.FC<PlayerListProps> = ({ players, currentTurnInde
                         )}
 
                         {/* Turn Order Badge */}
-                        <div className="absolute top-2 left-2 bg-[#8b5a2b] text-[#f4e4bc] text-xs font-bold px-1.5 py-0.5 rounded border border-[#d4c5a3] shadow-sm">
-                            #{players.findIndex(p => p.id === player.id) + 1}
+                        <div className="absolute top-2 left-2 bg-[#8b5a2b] text-[#f4e4bc] text-xs font-bold px-2 py-0.5 rounded border border-[#d4c5a3] shadow-sm flex items-center gap-1">
+                            <span className="text-[10px] opacity-70">Turn</span>
+                            {turnOrder}
                         </div>
 
                         {isTurn && (

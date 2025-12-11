@@ -123,12 +123,6 @@ export default function GameRoom() {
                 <span className="opacity-70">Room: {roomId}</span>
                 <span className="w-px h-6 bg-amber-900/30"></span>
                 <span>Round {gameState.round}</span>
-                {myPlayer && (
-                    <>
-                        <span className="w-px h-6 bg-amber-900/30"></span>
-                        <span className="text-amber-800">My Seat: #{gameState.players.findIndex(p => p.id === myPlayer.id) + 1}</span>
-                    </>
-                )}
             </div>
 
             <div className="absolute top-4 right-4 z-20">
@@ -163,6 +157,8 @@ export default function GameRoom() {
                     lastPlayedCards={gameState.lastPlayedCards}
                     status={gameState.status}
                     currentTurnPlayerName={currentTurnPlayer?.name}
+                    turnTimeLimit={gameState.turnTimeLimit}
+                    turnStartTime={gameState.turnStartTime}
                 />
                 {/* Waiting Room Controls */}
                 {gameState.status === 'waiting' && (
@@ -211,6 +207,27 @@ export default function GameRoom() {
                                             </div>
                                         </div>
                                     )}
+                                </div>
+
+                                {/* Time Limit Selector */}
+                                <div className="bg-[#f4e4bc] border-2 border-[#8b5a2b] rounded-lg p-3">
+                                    <label className="block text-sm font-bold text-[#8b5a2b] mb-1">⏳ 턴 시간 제한</label>
+                                    <div className="grid grid-cols-4 gap-2">
+                                        {[0, 10, 20, 30, 40, 50, 60].map(limit => (
+                                            <button
+                                                key={limit}
+                                                onClick={() => socket?.emit('set_time_limit', { roomId, limit })}
+                                                className={`
+                                                    px-2 py-1 rounded text-sm font-bold transition-all
+                                                    ${gameState.turnTimeLimit === limit
+                                                        ? 'bg-[#8b5a2b] text-[#f4e4bc] ring-2 ring-white ring-offset-1 ring-offset-[#8b5a2b]'
+                                                        : 'bg-white text-[#5a4632] hover:bg-[#e6d5aa]'}
+                                                `}
+                                            >
+                                                {limit === 0 ? '∞' : `${limit}초`}
+                                            </button>
+                                        ))}
+                                    </div>
                                 </div>
 
                                 <Button

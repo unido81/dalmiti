@@ -47,10 +47,45 @@ app.prepare().then(() => {
         }
     });
 
+    // Timer tracking
+    const turnTimers: Record<string, NodeJS.Timeout> = {};
+
+    const startTurnTimer = (roomId: string) => {
+        const room = rooms[roomId];
+        if (!room || room.gameState.status !== 'playing') return;
+
+        // Clear existing timer
+        if (turnTimers[roomId]) {
+            clearTimeout(turnTimers[roomId]);
+            delete turnTimers[roomId];
+        }
+
+        const limit = room.gameState.turnTimeLimit;
+        if (!limit || limit <= 0) return; // Unlimited
+
+        room.gameState.turnStartTime = Date.now();
+        // Notify start time (optional, but game_state_update handles it)
+
+        turnTimers[roomId] = setTimeout(() => {
+            console.log(`[${roomId}] Turn time limit exceeded for player index ${room.gameState.currentTurnIndex}`);
+            // Force Pass or Random Play?
+            // "Pass" is safer to avoid ruining strategy, but if everyone passes it's round over.
+            // Let's do Pass.
+            const playerIndex = room.gameState.currentTurnIndex;
+            handlePass(roomId, playerIndex);
+
+        }, limit * 1000);
+    };
+
     // Define functions in scope
     const processAiTurn = (roomId: string) => {
         const room = rooms[roomId];
         if (!room || room.gameState.status !== 'playing') return;
+
+        // ** Start Timer for EVERY turn (Human or AI) **
+        // Note: AI has its own delay, so we should ensure AI delay < Time Limit if possible.
+        // But for consistency we start the timer here.
+        startTurnTimer(roomId);
 
         const currentPlayer = room.gameState.players[room.gameState.currentTurnIndex];
         if (!currentPlayer.isBot) return;
@@ -348,6 +383,15 @@ app.prepare().then(() => {
                 };
                 room.gameState.players.push(newBot);
                 io.to(roomId).emit('game_state_update', room.gameState);
+            }
+        });
+
+        socket.on('set_time_limit', ({ roomId, limit }: { roomId: string, limit: number }) => {
+            const room = rooms[roomId];
+            if (room && room.gameState.status === 'waiting') {
+                room.gameState.turnTimeLimit = limit;
+                io.to(roomId).emit('game_state_update', room.gameState);
+                console.log(`[${roomId}] Time limit set to ${limit}s`);
             }
         });
 
