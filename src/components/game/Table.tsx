@@ -1,11 +1,11 @@
 import React from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Card as CardComponent } from './Card';
-import { Card } from '@/types/game';
+import { Card } from './Card';
+import { Card as CardType } from '@/types/game';
 import { TurnTimer } from './TurnTimer';
 
 interface TableProps {
-    lastPlayedCards: Card[] | null;
+    lastPlayedCards: CardType[] | null;
     status: 'waiting' | 'playing' | 'finished';
     currentTurnPlayerName?: string;
     turnTimeLimit?: number;
