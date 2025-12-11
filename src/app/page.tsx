@@ -1,11 +1,13 @@
 import Link from 'next/link';
 import { Button } from '@/components/ui/Button';
+import { VisitorCounter } from '@/components/VisitorCounter';
 
 export default function Home() {
   return (
     <main className="min-h-screen bg-slate-50 text-slate-900 font-sans">
       {/* Hero Section */}
       <section className="relative h-screen flex flex-col items-center justify-center overflow-hidden bg-gradient-to-br from-slate-900 to-indigo-900 text-white">
+        <VisitorCounter />
         <div className="absolute inset-0 opacity-20 bg-[url('/pattern.svg')]"></div>
 
         <div className="z-10 text-center px-4 max-w-4xl mx-auto">

@@ -2,6 +2,7 @@ import { createServer } from 'http';
 import { parse } from 'url';
 import next from 'next';
 import { Server, Socket } from 'socket.io';
+import * as fs from 'fs';
 import { GameState, Player, Card, BotLevel } from './src/types/game';
 import { createDeck, dealCards, isValidMove, shuffle } from './src/lib/game/logic';
 import { getBestMove } from './src/lib/game/ai';
@@ -257,8 +258,34 @@ app.prepare().then(() => {
         processAiTurn(roomId);
     };
 
+    // Visitor Counting Logic
+    const VISITOR_FILE = 'visitors.json';
+    let visitorCount = 0;
+
+    // Load initial count
+    try {
+        if (fs.existsSync(VISITOR_FILE)) {
+            const data = fs.readFileSync(VISITOR_FILE, 'utf8');
+            visitorCount = parseInt(JSON.parse(data).count);
+        }
+    } catch (e) {
+        console.error('Failed to load visitor count', e);
+    }
+
     io.on('connection', (socket: Socket) => {
         console.log('Client connected:', socket.id);
+
+        // Increment and save visitor count (simple approach: count every connection)
+        // For more accuracy, we could check IPs or cookies, but this is sufficient for now.
+        visitorCount++;
+        try {
+            fs.writeFileSync(VISITOR_FILE, JSON.stringify({ count: visitorCount }));
+        } catch (e) {
+            console.error('Failed to save visitor count', e);
+        }
+
+        // Emit current count to this client (and everyone else to update numbers live)
+        io.emit('visitor_count', visitorCount);
 
         socket.on('join_room', ({ roomId, nickname }: { roomId: string; nickname: string }) => {
             socket.join(roomId);
